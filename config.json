@@ -1,0 +1,9 @@
+{   
+    "report_path": "./reports/{}.json",
+    "plateform": {        
+        "instagram": {
+            "rate_limit": 1000,
+            "format": "https://instagram.com/{permutation}"
+        }
+    }
+}
