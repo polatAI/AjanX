@@ -5,6 +5,20 @@ import time
 from itertools import chain, combinations, permutations
 import instaloader
 from instaloader.exceptions import ConnectionException, InstaloaderException, LoginRequiredException
+import re
+
+
+class Bcolors:
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    RED = '\033[31m'
+    YELLOW = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    BGRED = '\033[41m'
+    WHITE = '\033[37m'
+
 
 @contextmanager
 def FileManager(path, methods, encod):
@@ -29,7 +43,7 @@ class Scanner:
         for kullanici_adi in self.instagram_usernames:
             try:
                 profile = instaloader.Profile.from_username(self.loader.context, kullanici_adi)
-                with FileManager("olasi_kullanici_bilgileri" , "a+", "utf-8") as file:
+                with FileManager("olasi_kullanici_bilgileri.txt" , "a+", "utf-8") as file:
                     file.write("Kullanıcı Adı: " + str(profile.username) + '\n')
                     file.write("Takipçi Sayısı: " + str(profile.followers) + '\n')
                     file.write("Takip Edilen Sayısı: " + str(profile.followees) + '\n')
@@ -39,7 +53,7 @@ class Scanner:
                     file.write("                                 AJANX TOOLS                               \n")
                     file.write("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n")
             except instaloader.exceptions.ProfileHasNoPicsException:
-                print(f"Kullanıcı adı bulunamadı: {kullanici_adi}")
+                print(Bcolors.RED +f"Kullanıcı adı bulunamadı: {kullanici_adi}" + Bcolors.ENDC)
                 
                 
     def gonderileri_indir(self):
@@ -51,8 +65,47 @@ class Scanner:
                 for post in profile.get_posts():
                     self.loader.download_post(post, target=profile.username)
             except instaloader.exceptions.ProfileHasNoPicsException:
-                print(f"Kullanıcı adı bulunamadı: {kullanici_adi}")
+                print(Bcolors.RED + f"Kullanıcı adı bulunamadı: {kullanici_adi}" + Bcolors.ENDC)
+                
+    def hastag(self, hastag):
+        
+        for post in self.loader.get_hashtag_posts(hastag):
+            self.loader.download_post(post, target=hastag)
+            
+            
+    def post_detayli_bilgi(self, post_url):
+        match = re.search(r'/p/([^/?]+)', post_url)
+        try:
+            username = input( Bcolors.YELLOW +"Lütfen kullanıcı adınızı giriniz: " + Bcolors.ENDC)
+            password = input( Bcolors.YELLOW + "Lütfen şifrenizi giriniz: " + Bcolors.ENDC)
+            self.loader.context.login(username,password)
+            if match:
+                post = instaloader.Post.from_shortcode(L.context, match)
+            
+                with FileManager("post_detayli_bilgi.txt", "w", "utf-8") as file:
+                    file.write("Gönderiyi Beğenen Kullanıcılar\n\n")
+                    for like in post.get_likes():
+                        file.write(like.username)
+                    
+                    file.write("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n")
+                    file.write("                                 AJANX TOOLS                               \n")
+                    file.write("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n\n")
 
+                with FileManager("post_detayli_bilgi.txt", "w", "utf-8") as file:
+                    file.write("Gönderiye Gelen Yorumlar\n\n")
+                
+                    for comment in post.get_comments():
+                        file.write(comment.owner.username, comment.text)
+                    
+                    file.write("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n")
+                    file.write("                                 AJANX TOOLS                               \n")
+                    file.write("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n")
+        
+        except InstaloaderException as ex:
+            print(Bcolors.RED + f"Giriş başarısız. Hata: {ex}" + Bcolors.ENDC)
+            exit()       
+
+        
 class Instagram:
 
     def __init__(self, config, permutations_list):
@@ -77,11 +130,11 @@ class Instagram:
                 bibliogram_formatted_URL = bibliogram_URL.format(username.replace("https://instagram.com/", ""))
                 r = requests.get(bibliogram_formatted_URL)
             except requests.ConnectionError:
-                print("Failed to connect to Instagram")
+                print(Bcolors.RED +"Failed to connect to Instagram"+ Bcolors.ENDC)
 
             if r.status_code == 200:
                 instagram_usernames["accounts"].append({"value": username})
-                print(f"Found username: {username}")
+                print(Bcolors.RED + f"Found username: {username}"+ Bcolors.ENDC)
 
             time.sleep(self.delay)
 
@@ -115,36 +168,76 @@ class Core:
         try:
             Instagram(self.CONFIG, self.permutations_list).search()
         except ConnectionException as e:
-            print(f"Hata: {e}")
-            print("Çok fazla istek gönderdiğiniz için geçici olarak engellendiniz. Lütfen bir süre sonra tekrar deneyin.")
+            print(Bcolors.RED + f"Hata: {e}" + Bcolors.ENDC)
+            print(Bcolors.RED + "Çok fazla istek gönderdiğiniz için geçici olarak engellendiniz. Lütfen bir süre sonra tekrar deneyin." + Bcolors.ENDC)
         except LoginRequiredException as e:
-            print(f"Hata: {e}")
-            print("Instagram hesabınıza giriş yapmanız gerekiyor.")
+            print(Bcolors.RED + f"Hata: {e}" + Bcolors.ENDC)
+            print(Bcolors.RED +"Instagram hesabınıza giriş yapmanız gerekiyor." + Bcolors.ENDC)
             self.login_instaloader()
 
 
-def main():
-    ad_soyad_username = input("Lütfen ad, soyad ve kullanıcı adınızı boşluk bırakarak girin: ")
+def userosint():
+    ad_soyad_username = input( Bcolors.YELLOW + "Lütfen ad, soyad ve kullanıcı adınızı boşluk bırakarak girin: " + Bcolors.ENDC)
     items = ad_soyad_username.split()
     config_path = "config.json"  # Replace with your config file path
     core = Core(config_path, items)
     core.get_permutations()
+    print(Bcolors.RED +"\nOlası Kullanıcı Adları Oluşturuluyor!!" + Bcolors.ENDC)
     core.instagram()
 
     getir = Scanner()
     try:
+        print(Bcolors.RED +"Kullanıcı bilgileri getiriliyor....\n" + Bcolors.ENDC)
+
         getir.kullanici_bilgileri()
+        
+        print(Bcolors.RED +"Kullanıcı Bilgileri TXT Dosyasına Kayıt Edildi.\n" + Bcolors.ENDC)
+        print(Bcolors.RED +"Kullanıcı Gönderileri İndiriliyor...\n" + Bcolors.ENDC)
+        
         getir.gonderileri_indir()
+        
+        print(Bcolors.YELLOW +"Kullanıcı Gönderileri İndirildi.\n" + Bcolors.ENDC)
     except instaloader.exceptions.LoginRequiredException:
-        print("Fazla istek gönderdiğiniz için yetkisizleştirildiniz lütfen giriş yapın.")
+        print(Bcolors.RED + "Fazla istek gönderdiğiniz için yetkisizleştirildiniz lütfen giriş yapın." + Bcolors.ENDC)
         try:
             L = instaloader.Instaloader()
-            username = input("Lütfen kullanıcı adınızı giriniz: ")
-            password = input("Lütfen şifrenizi giriniz: ")
+            username = input(Bcolors.YELLOW +"Lütfen kullanıcı adınızı giriniz: " + Bcolors.ENDC)
+            password = input(Bcolors.YELLOW +"Lütfen şifrenizi giriniz: "+ Bcolors.ENDC )
             L.context.login(username, password)
-        except InstaloaderException as ex:
-            print(f"Giriş başarısız. Hata: {ex}")
-            exit()
             
-    getir.kullanici_bilgileri()
-    getir.gonderileri_indir()
+                
+            print(Bcolors.RED + "Kullanıcı bilgileri getiriliyor....\n"+ Bcolors.ENDC )
+    
+            getir.kullanici_bilgileri()
+    
+            print(Bcolors.GREEN + "Kullanıcı Bilgileri TXT Dosyasına Kayıt Edildi.\n" + Bcolors.ENDC)
+            print(Bcolors.RED + "Kullanıcı Gönderileri İndiriliyor...\n" + Bcolors.ENDC)
+            getir.gonderileri_indir()
+            print(Bcolors.GREEN  + "Kullanıcı Gönderileri İndirildi.\n" + Bcolors.ENDC )
+            
+        except InstaloaderException as ex:
+            print(Bcolors.RED + f"Giriş başarısız. Hata: {ex}" + Bcolors.ENDC)
+            exit()
+
+
+def hastagosint(hastag):
+    getir = Scanner()
+    try:
+        print(Bcolors.RED +f"{hastag} ile ilgili veriler çekiliyor....\n" + Bcolors.ENDC)
+        getir.hastag(hastag)
+        print(Bcolors.GREEN + f"{hastag} ile ilgili veriler çekildi!" + Bcolors.ENDC)
+    except Exception as e:
+        print(Bcolors.RED + f"Veriler Çekilemedi. HATA: {e}" + Bcolors.ENDC)
+    
+def detayli_post_osint(post_url):
+    getir = Scanner()
+    try:
+        print(Bcolors.RED +"Gönderiye ait detaylı bilgiler çekiliyor..." + Bcolors.ENDC)
+        getir.post_detayli_bilgi(post_url)
+        print(Bcolors.GREEN + "Gönderiye ait detaylı bilgiler çekildi" + Bcolors.ENDC)
+    except Exception as e:
+        print(Bcolors.RED + f"Veriler Çekilemedi. HATA: {e}" + Bcolors.ENDC)
+
+    
+    
+    
