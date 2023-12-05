@@ -30,4 +30,4 @@ Projeyi kullanmak için aşağıdaki adımları takip edebilirsiniz:
 
 ## 🚫 Sorumluluk Reddi
 
-Bu proje MIT lisansı altında dağıtılmaktadır. Daha fazla bilgi için [Lisans Dosyası](LICENSE) sayfasını inceleyebilirsiniz.
+Bu proje eğitim ve bilgilendirme amaçlı yapılmıştır. İllegal bir kullanımı kullanıcı sorumluluğundadır.
